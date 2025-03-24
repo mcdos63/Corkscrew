@@ -12,6 +12,7 @@ bot = telebot.TeleBot(bot_id)
 # Пути к файлам
 facts_file_path = 'doc/facts.txt'
 menu_file_path = 'doc/menu1.txt'
+logo = 'doc/s.png'
 
 # Словарь для перевода дней недели на русский язык
 days_of_week_ru = {
@@ -49,7 +50,18 @@ start_text = (
 def create_inline_keyboard():
     markup = types.InlineKeyboardMarkup(row_width=2)  # 2 кнопки в строке
 
-    # Создание кнопок
+    # # Создание кнопок
+    # buttons = [
+    #     ("Режим работы", "working_hours"),
+    #     ("Наши контакты", "contacts"),
+    #     ("Меню", "menu"),
+    #     ("Интересные факты", "fact"),
+    #     ("Фотогалерея", "photos"),
+    #     ("Отправить сообщение", "send_message")
+    # ]
+    #
+    # for text, callback in buttons:
+    #     markup.add(types.InlineKeyboardButton(text, callback_data=callback))
     btn1 = types.InlineKeyboardButton("Режим работы", callback_data="working_hours")
     btn2 = types.InlineKeyboardButton("Наши контакты", callback_data="contacts")
     btn3 = types.InlineKeyboardButton("Меню", callback_data="menu")
@@ -64,7 +76,7 @@ def create_inline_keyboard():
 @bot.message_handler(commands=['start'])
 def start_message(message):
     try:
-        sti = open('doc/s.png', 'rb')
+        sti = open(logo, 'rb')
         bot.send_sticker(message.chat.id, sti)
 
         bot.send_message(message.chat.id, 'Добро пожаловать, {0.first_name}!'.format(message.from_user))
