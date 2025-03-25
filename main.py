@@ -96,10 +96,10 @@ def handle_action(action, message_or_call):
     chat_id = message_or_call.message.chat.id if hasattr(message_or_call, 'message') else message_or_call.chat.id
 
     if action == 'working_hours':
-        bot.send_message(chat_id, f"{text1}\nНаш режим работы: {time_open}:00 - {time_close:02}:00", message_effect_id='5112309860389126442')
+        bot.send_message(chat_id, text=f"{text1}\n\nРежим работы: {time_open}:00 - {time_close:02}:00")
     elif action == 'contacts':
-        bot.send_message(chat_id, '''Заведение находится по адресу: Проспект Кирова 419Б, Самара. 🧭
-        Для связи с буфетом можно использовать телефон: +7 (917) 819-21-94''', message_effect_id='5112609860389126442')
+        bot.send_message(chat_id=chat_id,  text='''Буфет "Штопор" находится по адресу:\nПроспект Кирова 419Б, Самара. 🧭
+Телефон для связи: +7 (917) 819-21-94''')
 
     elif action == 'menu':
         try:
