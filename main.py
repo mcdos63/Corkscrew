@@ -13,6 +13,8 @@ bot = telebot.TeleBot(bot_id)
 facts_file_path = 'doc/facts.txt'
 menu_file_path = 'doc/menu1.txt'
 logo = 'doc/s.png'
+text1 = '''Буфет работает в ночное время, что делает его удобным местом для приобретения напитков после закрытия основных магазинов. Заведение предлагает как напитки, так и сопутствующие закуски, что позволяет посетителям получить всё необходимое в одном месте.
+Важно отметить, что заведение открыто для посетителей и готово предложить свои услуги в удобное для них время. ⌚'''
 
 # Словарь для перевода дней недели на русский язык
 days_of_week_ru = {
@@ -77,7 +79,7 @@ def create_inline_keyboard():
 def start_message(message):
     try:
         sti = open(logo, 'rb')
-        bot.send_sticker(message.chat.id, sti)
+        bot.send_sticker(message.chat.id, sti, message_effect_id='5046509860389126442')
 
         bot.send_message(message.chat.id, 'Добро пожаловать, {0.first_name}!'.format(message.from_user))
         bot.send_message(message.chat.id, start_text, parse_mode='HTML')
@@ -94,9 +96,11 @@ def handle_action(action, message_or_call):
     chat_id = message_or_call.message.chat.id if hasattr(message_or_call, 'message') else message_or_call.chat.id
 
     if action == 'working_hours':
-        bot.send_message(chat_id, f"Наш режим работы: {time_open}:00 - {time_close:02}:00")
+        bot.send_message(chat_id, f"{text1}\nНаш режим работы: {time_open}:00 - {time_close:02}:00", message_effect_id='5112309860389126442')
     elif action == 'contacts':
-        bot.send_message(chat_id, "Наш адрес: Самара, пр. Кирова 419Б")
+        bot.send_message(chat_id, '''Заведение находится по адресу: Проспект Кирова 419Б, Самара. 🧭
+        Для связи с буфетом можно использовать телефон: +7 (917) 819-21-94''', message_effect_id='5112609860389126442')
+
     elif action == 'menu':
         try:
             with open(menu_file_path, 'r', encoding='utf-8') as file:
