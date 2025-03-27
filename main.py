@@ -1,20 +1,89 @@
 import telebot
 import time
-from datetime import datetime
 import random
+import logging
+from datetime import datetime
 from telebot import types
+
+
+# Пути к файлам
+PATH = 'doc/'
+facts_file_path = 'doc/facts.txt'
+menu_file_path = 'doc/menu1.txt'
+logo = 'doc/s.png'
 
 # Чтение токена бота из файла
 with open('doc/bot.txt', 'r') as file:
     bot_id = file.read().strip()  # Убираем лишние пробелы и переносы строки
 bot = telebot.TeleBot(bot_id)
 
-# Пути к файлам
-facts_file_path = 'doc/facts.txt'
-menu_file_path = 'doc/menu1.txt'
-logo = 'doc/s.png'
 text1 = '''Буфет работает в ночное время, что делает его удобным местом для приобретения напитков после закрытия основных магазинов. Заведение предлагает как напитки, так и сопутствующие закуски, что позволяет посетителям получить всё необходимое в одном месте.
 Важно отметить, что заведение открыто для посетителей и готово предложить свои услуги в удобное для них время. ⌚'''
+
+# логирование для отслеживания загрузок
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def log_upload(user_id, file_name):
+    logging.info(f"User {user_id} uploaded file: {file_name}")
+
+# Список разрешенных пользователей
+allowed_users = [123456789, 524849386]  # реальные user_id
+
+# Словарь для отслеживания состояния пользователей
+user_states = {}
+
+# Команда /upload
+@bot.message_handler(commands=['upload'])
+def upload_command(message):
+    user_id = message.from_user.id
+
+    if user_id not in allowed_users:
+        bot.reply_to(message, "У вас нет прав для загрузки файлов.")
+        return
+    # Устанавливаем состояние "ожидание файла"
+    user_states[user_id] = "awaiting_file"
+    bot.reply_to(message, "Отправьте файл для загрузки.")
+
+# Обработка документов
+@bot.message_handler(content_types=['document'])
+def handle_document(message):
+    user_id = message.from_user.id
+
+    # Проверяем состояние пользователя
+    if user_states.get(user_id) != "awaiting_file":
+        return
+
+    # Получаем информацию о файле
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    # # Создаем папку для сохранения файлов, если её нет
+    # if not os.path.exists("uploads"):
+    #     os.makedirs("uploads")
+
+    # Сохраняем файл
+    file_path = f"{PATH}/{message.document.file_name}"
+    with open(file_path, 'wb') as new_file:
+        new_file.write(downloaded_file)
+        log_upload(user_id, message.document.file_name) # Логирование загрузки
+
+    # Очищаем состояние пользователя
+    user_states.pop(user_id, None)
+# Команда для авторизации пользователей
+@bot.message_handler(commands=['authorize'])
+def authorize_user(message):
+    # Проверка, является ли отправитель администратором
+    if message.from_user.id not in allowed_users:  # ID администратора
+        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        return
+
+    # Получение user_id из текста команды
+    try:
+        user_to_authorize = int(message.text.split()[1])
+        allowed_users.append(user_to_authorize)
+        bot.reply_to(message, f"Пользователь с ID {user_to_authorize} успешно авторизован.")
+    except (IndexError, ValueError):
+        bot.reply_to(message, "Использование: /authorize <user_id>")
 
 # Словарь для перевода дней недели на русский язык
 days_of_week_ru = {
