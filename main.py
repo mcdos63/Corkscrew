@@ -110,8 +110,8 @@ def handle_action(action, message_or_call):
     elif action == 'contacts':
         bot.send_message(chat_id, text='''🏪 Буфет "Штопор" находится по адресу:
 📍 Проспект Кирова 419Б, Самара.
-📞 Телефон для связи: +7 (917) 819-21-94''', parse_mode='HTML')
-        bot.send_location(chat_id, latitude=53.195873, longitude=50.100743)  # Пример координат
+📞 Телефон для связи: +7 (917)8192194''', parse_mode='HTML')
+        bot.send_location(chat_id, latitude=53.259035, longitude=50.217374)  # Пример координат
 
     elif action == 'menu':
         try:
