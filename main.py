@@ -5,87 +5,45 @@ import logging
 from datetime import datetime
 from telebot import types
 
-
 # Пути к файлам
 PATH = 'doc/'
+bot_file_path = 'doc/bot.txt'
 facts_file_path = 'doc/facts.txt'
 menu_file_path = 'doc/menu1.txt'
 logo = 'doc/s.png'
 
+
+# Читаем файл и исключаем пустые строки
+def read_file(file_path) -> list[str]:
+    with open(file_path, 'r', encoding='utf-8') as file:
+        try:
+            return [line.strip() for line in file if line.strip()]
+        except Exception as e:
+            print(f"Произошла ошибка при чтении файла: {e}")
+            return []
+
+
 # Чтение токена бота из файла
-with open('doc/bot.txt', 'r') as file:
-    bot_id = file.read().strip()  # Убираем лишние пробелы и переносы строки
+bot_id = read_file(bot_file_path)[0]
 bot = telebot.TeleBot(bot_id)
 
-text1 = '''Буфет работает в ночное время, что делает его удобным местом для приобретения напитков после закрытия основных магазинов. Заведение предлагает как напитки, так и сопутствующие закуски, что позволяет посетителям получить всё необходимое в одном месте.
-Важно отметить, что заведение открыто для посетителей и готово предложить свои услуги в удобное для них время. ⌚'''
-
-# логирование для отслеживания загрузок
+# Логирование для отслеживания загрузок
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def log_upload(user_id, file_name):
-    logging.info(f"User {user_id} uploaded file: {file_name}")
 
 # Список разрешенных пользователей
 allowed_users = [123456789, 524849386]  # реальные user_id
-
-# Словарь для отслеживания состояния пользователей
 user_states = {}
 
-# Команда /upload
-@bot.message_handler(commands=['upload'])
-def upload_command(message):
-    user_id = message.from_user.id
 
-    if user_id not in allowed_users:
-        bot.reply_to(message, "У вас нет прав для загрузки файлов.")
-        return
-    # Устанавливаем состояние "ожидание файла"
-    user_states[user_id] = "awaiting_file"
-    bot.reply_to(message, "Отправьте файл для загрузки.")
+# Функция для получения текущего времени
+def get_current_time():
+    now = datetime.now()
+    day_of_week = days_of_week_ru[now.strftime("%A")]
+    current_time = now.strftime("%H:%M")
+    current_hour = int(current_time.split(':')[0])
+    return now, day_of_week, current_time, current_hour
 
-# Обработка документов
-@bot.message_handler(content_types=['document'])
-def handle_document(message):
-    user_id = message.from_user.id
 
-    # Проверяем состояние пользователя
-    if user_states.get(user_id) != "awaiting_file":
-        return
-
-    # Получаем информацию о файле
-    file_info = bot.get_file(message.document.file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
-
-    # # Создаем папку для сохранения файлов, если её нет
-    # if not os.path.exists("uploads"):
-    #     os.makedirs("uploads")
-
-    # Сохраняем файл
-    file_path = f"{PATH}/{message.document.file_name}"
-    with open(file_path, 'wb') as new_file:
-        new_file.write(downloaded_file)
-        log_upload(user_id, message.document.file_name) # Логирование загрузки
-
-    # Очищаем состояние пользователя
-    user_states.pop(user_id, None)
-# Команда для авторизации пользователей
-@bot.message_handler(commands=['authorize'])
-def authorize_user(message):
-    # Проверка, является ли отправитель администратором
-    if message.from_user.id not in allowed_users:  # ID администратора
-        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
-        return
-
-    # Получение user_id из текста команды
-    try:
-        user_to_authorize = int(message.text.split()[1])
-        allowed_users.append(user_to_authorize)
-        bot.reply_to(message, f"Пользователь с ID {user_to_authorize} успешно авторизован.")
-    except (IndexError, ValueError):
-        bot.reply_to(message, "Использование: /authorize <user_id>")
-
-# Словарь для перевода дней недели на русский язык
 days_of_week_ru = {
     "Monday": "Понедельник",
     "Tuesday": "Вторник",
@@ -96,79 +54,64 @@ days_of_week_ru = {
     "Sunday": "Воскресенье"
 }
 
-# Получение текущего дня недели и времени
-now = datetime.now()
-day_of_week = days_of_week_ru[now.strftime("%A")]  # Получаем день недели на русском
-current_time = now.strftime("%H:%M")  # Текущее время
-current_hour = int(current_time.split(':')[0])
-
 time_open = 12
 time_close = 1
 
-# Определение статуса работы буфета
-if (time_open <= current_hour < 24) or (0 <= current_hour < time_close):
-    status = 'Двери буфета открыты. Ждём только вас, приходите скорее!'
-else:
-    status = 'Двери буфета пока закрыты, но мы готовимся принять Вас у нас в рабочее время.'
 
-start_text = (
-    f'<b>Сегодня прекрасный день! {day_of_week}, время {current_time}.</b>\n'
-    f'{status}\n'
-    f"В буфете <b>\"Штопор\"</b> вы можете насладиться разнообразными закусками и напитками на любой вкус.\n"
-    f"<i>У нас приятный интерьер, доброжелательные сотрудники и большое разнообразие блюд для всех возрастов!</i>\n"
-)
-
+# Создание inline-клавиатуры
 def create_inline_keyboard():
-    markup = types.InlineKeyboardMarkup(row_width=2)  # 2 кнопки в строке
-
-    # # Создание кнопок
-    # buttons = [
-    #     ("Режим работы", "working_hours"),
-    #     ("Наши контакты", "contacts"),
-    #     ("Меню", "menu"),
-    #     ("Интересные факты", "fact"),
-    #     ("Фотогалерея", "photos"),
-    #     ("Отправить сообщение", "send_message")
-    # ]
-    #
-    # for text, callback in buttons:
-    #     markup.add(types.InlineKeyboardButton(text, callback_data=callback))
-    btn1 = types.InlineKeyboardButton("Режим работы", callback_data="working_hours")
-    btn2 = types.InlineKeyboardButton("Наши контакты", callback_data="contacts")
-    btn3 = types.InlineKeyboardButton("Меню", callback_data="menu")
-    btn4 = types.InlineKeyboardButton("Интересные факты", callback_data="fact")
-    btn5 = types.InlineKeyboardButton("Фотогалерея", callback_data="photos")
-    btn6 = types.InlineKeyboardButton("Отправить сообщение", callback_data="send_message")
-
-    # Добавление кнопок в клавиатуру
-    markup.add(btn1, btn2, btn3, btn4, btn5, btn6)
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    buttons = [
+        types.InlineKeyboardButton("Режим работы", callback_data="working_hours"),
+        types.InlineKeyboardButton("Наши контакты", callback_data="contacts"),
+        types.InlineKeyboardButton("Меню", callback_data="menu"),
+        types.InlineKeyboardButton("Интересные факты", callback_data="fact"),
+        types.InlineKeyboardButton("Фотогалерея", callback_data="photos"),
+        types.InlineKeyboardButton("Отправить сообщение", callback_data="send_message")
+    ]
+    markup.add(*buttons)
     return markup
 
+
+# Обработка команды /start
 @bot.message_handler(commands=['start'])
 def start_message(message):
     try:
+        now, day_of_week, current_time, current_hour = get_current_time()
+
+        status = ('Двери буфета открыты...'
+                  if (time_open <= current_hour < 24) or (0 <= current_hour < time_close)
+                  else 'Двери буфета пока закрыты...')
+
+        start_text = (
+            f'<b>Сегодня прекрасный день! {day_of_week}, время {current_time}.</b>\n'
+            f'{status}\n'
+            f"В буфете <b>\"Штопор\"</b> вы можете насладиться разнообразными закусками и напитками на любой вкус.\n"
+            f"<i>У нас приятный интерьер, доброжелательные сотрудники и большое разнообразие блюд для всех возрастов!</i>\n"
+        )
+
         sti = open(logo, 'rb')
         bot.send_sticker(message.chat.id, sti, message_effect_id='5046509860389126442')
-
-        bot.send_message(message.chat.id, 'Добро пожаловать, {0.first_name}!'.format(message.from_user))
+        bot.send_message(message.chat.id, f'🎉 Добро пожаловать, {message.from_user.first_name}! 🎉', parse_mode='HTML')
         bot.send_message(message.chat.id, start_text, parse_mode='HTML')
-
         markup = create_inline_keyboard()
-        bot.send_message(message.chat.id, "Выберите опцию:", reply_markup=markup)
-
+        bot.send_message(message.chat.id, "✨ Выберите опцию: ✨", reply_markup=markup)
     except Exception as e:
-        bot.send_message(message.chat.id, f"Ошибка: {e}")
+        bot.send_message(message.chat.id, f"❌ Ошибка: {e}")
 
 
-# Общая функция для обработки команд и callback-запросов
+# Общая функция для обработки действий
 def handle_action(action, message_or_call):
     chat_id = message_or_call.message.chat.id if hasattr(message_or_call, 'message') else message_or_call.chat.id
 
     if action == 'working_hours':
-        bot.send_message(chat_id, text=f"{text1}\n\nРежим работы: {time_open}:00 - {time_close:02}:00")
+        bot.send_message(chat_id, text=f"⏰ Режим работы: {time_open}:00 - {time_close:02}:00", parse_mode='HTML')
+
     elif action == 'contacts':
-        bot.send_message(chat_id=chat_id,  text='''Буфет "Штопор" находится по адресу:\nПроспект Кирова 419Б, Самара. 🧭
-Телефон для связи: +7 (917) 819-21-94''')
+        bot.send_message(chat_id, text='''🏪 Буфет "Штопор" находится по адресу:
+📍 Проспект Кирова 419Б, Самара.
+📞 Телефон для связи: +7 (917) 819-21-94''', parse_mode='HTML')
+        bot.send_location(chat_id, latitude=53.195873, longitude=50.100743)  # Пример координат
 
     elif action == 'menu':
         try:
@@ -176,40 +119,36 @@ def handle_action(action, message_or_call):
                 menu_text = f'<code>{file.read()}</code>'
             bot.send_message(chat_id, menu_text, parse_mode='HTML')
         except Exception as e:
-            bot.send_message(chat_id, f"Ошибка при чтении меню: {e}")
+            bot.send_message(chat_id, f"❌ Ошибка при чтении меню: {e}")
+
     elif action == 'fact':
         try:
             with open(facts_file_path, 'r', encoding='utf-8') as file:
                 lines = file.read().splitlines()
                 if not lines:
-                    bot.send_message(chat_id, "Факты временно недоступны.")
+                    bot.send_message(chat_id, "🧐 Факты временно недоступны.")
                     return
                 random_fact = random.choice(lines)
-                bot.send_message(chat_id, f'{random_fact}')
+                bot.send_message(chat_id, f'💡 Интересный факт: {random_fact}')
         except Exception as e:
-            bot.send_message(chat_id, f"Ошибка при чтении фактов: {e}")
+            bot.send_message(chat_id, f"❌ Ошибка при чтении фактов: {e}")
+
     elif action == 'photos':
         photo_paths = ['doc/photo1.jpg', 'doc/photo2.jpg', 'doc/photo3.jpg', 'doc/photo4.jpg', 'doc/photo5.jpg']
-        message_ids = []
         for photo_path in photo_paths:
             try:
                 with open(photo_path, 'rb') as photo:
-                    msg = bot.send_photo(chat_id, photo)
-                    message_ids.append(msg.message_id)
-                    time.sleep(3)  # Пауза перед отправкой следующей фотографии
+                    bot.send_photo(chat_id, photo)
+                    time.sleep(1)  # Пауза между фото
             except Exception as e:
-                bot.send_message(chat_id, f"Ошибка при отправке фото: {e}")
+                bot.send_message(chat_id, f"❌ Ошибка при отправке фото: {e}")
                 break
 
-        # Удаление всех отправленных фотографий
-        for message_id in message_ids:
-            try:
-                bot.delete_message(chat_id, message_id)
-            except Exception as e:
-                bot.send_message(chat_id, f"Ошибка при удалении фото: {e}")
     elif action == 'send_message':
-        bot.send_message(chat_id, "Пожалуйста, введите ваше имя, телефон и сообщение в формате:\n"
-                                  "Имя: <Ваше имя>\nТелефон: <Ваш телефон>\nСообщение: <Ваше сообщение>")
+        bot.send_message(chat_id, "📝 Пожалуйста, введите ваше имя, телефон и сообщение в формате:\n"
+                                  "Имя: <Ваше имя>\n"
+                                  "Телефон: <Ваш телефон>\n"
+                                  "Сообщение: <Ваше сообщение>")
         if hasattr(message_or_call, 'message'):
             bot.register_next_step_handler(message_or_call.message, process_contact_info)
         else:
@@ -225,7 +164,7 @@ def callback_inline(call):
 # Обработка текстовых команд
 @bot.message_handler(commands=['working_hours', 'contacts', 'menu', 'fact', 'photos', 'send_message'])
 def command_handler(message):
-    action = message.text.lstrip('/').lower()  # Убираем слэш и преобразуем в lowercase
+    action = message.text.lstrip('/').lower()
     handle_action(action, message)
 
 
@@ -235,29 +174,27 @@ def process_contact_info(message):
         data = {}
         lines = message.text.split('\n')
         for line in lines:
-            key, value = line.split(': ', 1)  # Разделяем по первому ': '
+            key, value = line.split(': ', 1)
             data[key.strip()] = value.strip()
-
         name = data.get('Имя')
         phone = data.get('Телефон')
         mes = data.get('Сообщение')
-
         if not all([name, phone, mes]):
             raise ValueError("Недостаточно данных.")
-
-        bot.send_message(message.chat.id, f"Спасибо, {name}! Ваши данные получены:\nТелефон: {phone}\nСообщение: {mes}")
-
+        bot.send_message(message.chat.id, f"✅ Спасибо, {name}! Ваши данные получены:\n"
+                                          f"📞 Телефон: {phone}\n"
+                                          f"💬 Сообщение: {mes}")
     except ValueError as ve:
-        bot.send_message(message.chat.id, f"Ошибка: {ve}. Пожалуйста, следуйте указанному формату.")
+        bot.send_message(message.chat.id, f"❌ Ошибка: {ve}. Пожалуйста, следуйте указанному формату.")
     except Exception as e:
-        bot.send_message(message.chat.id, f"Произошла ошибка: {e}")
+        bot.send_message(message.chat.id, f"❌ Произошла ошибка: {e}")
 
 
 # Команда /help
 @bot.message_handler(commands=["help"])
 def send_help(message):
     help_text = (
-        "Доступные команды:\n"
+        "📚 Доступные команды:\n"
         "/start - Начать работу с ботом\n"
         "/help - Показать это сообщение\n"
         "/working_hours - Режим работы\n"
@@ -267,16 +204,16 @@ def send_help(message):
         "/photos - Фотогалерея\n"
         "/send_message - Отправить сообщение администратору"
     )
-    bot.send_message(message.chat.id, help_text)
+    bot.send_message(message.chat.id, help_text, parse_mode='HTML')
 
 
 if __name__ == '__main__':
-    print('Бот включен!')
+    print('🤖 Бот включен!')
     try:
         bot.polling(none_stop=True)
     except KeyboardInterrupt:
-        print('Бот выключен пользователем!')
+        print('🛑 Бот выключен пользователем!')
     except Exception as e:
-        print(f'Неожиданная ошибка: {e}')
+        print(f'⚠️ Неожиданная ошибка: {e}')
     finally:
-        print('Завершение работы бота...')
+        print('🏁 Завершение работы бота...')
