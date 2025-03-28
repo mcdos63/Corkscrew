@@ -110,7 +110,7 @@ Username: @{message.from_user.username or ""}
             message.from_user.username,
             message.text
         )
-        logging.info(f"User {message.from_user.id}:{message.from_user.first_name} Username:@{message.from_user.username or ""} send message: {message.text}")
+        logging.info(f"User {message.from_user.id}:{message.from_user.first_name} Username:@{message.from_user.username or ''} send message: {message.text}")
         # Отправляем сообщение администратору
         admin_id = allowed_users[0]
         bot.send_message(admin_id, user_info)
