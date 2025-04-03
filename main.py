@@ -111,7 +111,7 @@ def start_text():
         else 'Двери буфета пока закрыты...')
     weather = get_weather()
     return (
-        f'<b>Сегодня прекрасный день! {day_of_week} {weather.get('температура', '')}, время {current_time}.</b>\n'
+        f'<b>Сегодня прекрасный день! {day_of_week} {weather.get("температура", "")}, время {current_time}.</b>\n'
         f'{status}\n'
         f"В буфете <b>\"Штопор\"</b> вы можете насладиться разнообразными закусками и напитками.")
 
