@@ -3,7 +3,7 @@ import time
 import random
 import logging
 from datetime import datetime
-from telebot import types
+from telebot import types, telebot.util.quick_markup
 
 # Пути к файлам
 PATH = 'doc/'
@@ -23,6 +23,9 @@ bot = telebot.TeleBot(bot_id)
 # Логирование и пользователи
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 allowed_users = [524849386, 123456789]  # реальные user_id
+def is_admin(message):
+    return message.from_user.id in allowed_users
+
 user_states = {}
 
 # Русские названия дней недели
@@ -47,14 +50,25 @@ def get_current_time():
     current_hour = int(current_time.split(':')[0])
     return now, day_of_week, current_time, current_hour
 
+def start_text():
+    now, day_of_week, current_time, current_hour = get_current_time()
+    status = ('Двери буфета открыты...'
+              if (time_open <= current_hour < 24) or (0 <= current_hour < time_close)
+              else 'Двери буфета пока закрыты...')
+    return (
+        f'<b>Сегодня прекрасный день! {day_of_week}, время {current_time}.</b>\n'
+        f'{status}\n'
+        f"В буфете <b>\"Штопор\"</b> вы можете насладиться разнообразными закусками и напитками.\n")
+
+
 # Команда /upload
 @bot.message_handler(commands=['upload'])
 def upload_command(message):
-    if message.from_user.id not in allowed_users:
+    if is_admin(message):
+        user_states[message.from_user.id] = "awaiting_file"
+        bot.reply_to(message, "Отправьте файл для загрузки.")
+    else:
         bot.reply_to(message, "У вас нет прав для загрузки файлов.")
-        return
-    user_states[message.from_user.id] = "awaiting_file"
-    bot.reply_to(message, "Отправьте файл для загрузки.")
 
 
 @bot.message_handler(content_types=['document'])
@@ -87,11 +101,13 @@ def log_sent_message(user_id, first_name, last_name, username, text):
         f.write(f"{log_entry}\n")
 
 
-# # Обработка отправки сообщений администратору
-# @bot.message_handler(commands=['send_message'])
-# def send_message_command(message):
-#     bot.send_message(message.chat.id, "Введите ваше сообщение:")
-#     bot.register_next_step_handler(message, process_user_message)
+# Обработка отправки сообщений администратору
+@bot.message_handler(commands=['send_message'])
+def send_message_command(message):
+    markup = quick_markup({'Пожалуйста, поделитесь своим контактом.': 'user_contact'})
+
+    bot.send_message(message.chat.id, "Введите ваше сообщение:")
+    bot.register_next_step_handler(message, process_user_message)
 
 
 def process_user_message(message):
@@ -122,7 +138,7 @@ Username: @{message.from_user.username or ""}
 # Команда для просмотра логов администраторами
 @bot.message_handler(commands=['logs'])
 def show_logs(message):
-    if message.from_user.id not in allowed_users:
+    if not is_admin(message):
         bot.reply_to(message, "У вас нет прав для просмотра логов.")
         return
 
@@ -160,22 +176,22 @@ def create_inline_keyboard():
 # Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start_message(message):
-    now, day_of_week, current_time, current_hour = get_current_time()
-    status = ('Двери буфета открыты...'
-              if (time_open <= current_hour < 24) or (0 <= current_hour < time_close)
-              else 'Двери буфета пока закрыты...')
-
-    start_text = (
-        f'<b>Сегодня прекрасный день! {day_of_week}, время {current_time}.</b>\n'
-        f'{status}\n'
-        f"В буфете <b>\"Штопор\"</b> вы можете насладиться разнообразными закусками и напитками.\n"
-        f"<i>У нас приятный интерьер, доброжелательные сотрудники и большое разнообразие блюд для всех возрастов!</i>\n"
-    )
+    # now, day_of_week, current_time, current_hour = get_current_time()
+    # status = ('Двери буфета открыты...'
+    #           if (time_open <= current_hour < 24) or (0 <= current_hour < time_close)
+    #           else 'Двери буфета пока закрыты...')
+    #
+    # start_text = (
+    #     f'<b>Сегодня прекрасный день! {day_of_week}, время {current_time}.</b>\n'
+    #     f'{status}\n'
+    #     f"В буфете <b>\"Штопор\"</b> вы можете насладиться разнообразными закусками и напитками.\n"
+    #     f"<i>У нас приятный интерьер, доброжелательные сотрудники и большое разнообразие блюд для всех возрастов!</i>\n"
+    # )
 
     sti = open(logo, 'rb')
     bot.send_sticker(message.chat.id, sti, message_effect_id='5046509860389126442')
     bot.send_message(message.chat.id, f'🎉 Добро пожаловать, {message.from_user.first_name}! 🎉', parse_mode='HTML')
-    bot.send_message(message.chat.id, start_text, parse_mode='HTML')
+    bot.send_message(message.chat.id, start_text(), parse_mode='HTML')
     markup = create_inline_keyboard()
     bot.send_message(message.chat.id, "✨ Выберите опцию: ✨", reply_markup=markup)
 
@@ -238,6 +254,23 @@ def handle_action(action, chat_id):
     elif action == 'send_message':
         bot.send_message(chat_id, "Введите ваше сообщение:")
         bot.register_next_step_handler_by_chat_id(chat_id, process_user_message)
+    elif action == 'user_contact':
+        contact = chat_id.contact
+
+        phone_number = contact.phone_number
+        first_name = contact.first_name
+        last_name = contact.last_name or 'Не указано'
+        user_id = contact.user_id
+
+        bot.send_message(
+            chat_id.chat.id,
+            f"Спасибо! Мы получили ваш номер:\n"
+            f"Имя: {first_name}\n"
+            f"Фамилия: {last_name}\n"
+            f"Телефон: {phone_number}\n"
+            f"User ID: {user_id}"
+        )
+
 
 
 # Обработка inline-кнопок
@@ -258,15 +291,22 @@ def command_handler(message):
 def send_help(message):
     help_text = (
         "Доступные команды:\n"
-        "/start - Начать работу с ботом\n"
+        "start - Начать работу с ботом\n"
         "/help - Показать это сообщение\n"
-        "/working_hours - Режим работы\n"
+        "/working_hours - Расписание\n"
         "/contacts - Наши контакты\n"
         "/menu - Меню\n"
         "/fact - Показать случайный факт\n"
         "/photos - Фотогалерея\n"
         "/send_message - Отправить сообщение администратору"
     )
+    if is_admin(message):
+        help_text += (
+        "-------------------------------\n"
+        "Администратору:\n"
+        "/upload - Загрузить файл\n"
+        "/logs - Показать логи\n"
+        )
     bot.send_message(message.chat.id, help_text)
 
 
