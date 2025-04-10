@@ -147,7 +147,8 @@ def create_inline_keyboard():
         types.InlineKeyboardButton("Интересные факты", callback_data="fact"),
         types.InlineKeyboardButton("Фотогалерея", callback_data="photos"),
         # types.InlineKeyboardButton("Проговорить текст", callback_data="speak"),
-        types.InlineKeyboardButton("Отправить сообщение", callback_data="letter")
+        types.InlineKeyboardButton("Отправить сообщение", callback_data="letter"),
+        types.InlineKeyboardButton("Играть", url="GAME_URL")
     ]
     markup.add(*buttons)
     return markup
