@@ -25,6 +25,7 @@ from config import (
     latitude,
     longitude,
     API_KEY,
+    GAME_URL,
     photo_paths
 )
 
@@ -148,7 +149,7 @@ def create_inline_keyboard():
         types.InlineKeyboardButton("Фотогалерея", callback_data="photos"),
         # types.InlineKeyboardButton("Проговорить текст", callback_data="speak"),
         types.InlineKeyboardButton("Отправить сообщение", callback_data="letter"),
-        types.InlineKeyboardButton("Играть", url="GAME_URL")
+        types.InlineKeyboardButton("Играть", url=GAME_URL)
     ]
     markup.add(*buttons)
     return markup
