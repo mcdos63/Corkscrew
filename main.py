@@ -10,24 +10,8 @@ from gtts import gTTS
 import os
 
 # Импорт констант и настроек из config.py
-from config import (
-    PATH,
-    BOT_FILE_PATH,
-    FACTS_FILE_PATH,
-    MENU_FILE_PATH,
-    LOGO_PATH,
-    LOG_FILE,
-    AUDIO_PATH,
-    ALLOWED_USERS,
-    DAYS_OF_WEEK_RU,
-    TIME_OPEN,
-    TIME_CLOSE,
-    latitude,
-    longitude,
-    API_KEY,
-    GAME_URL,
-    photo_paths
-)
+from config import *
+
 
 # Логирование и пользователи
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -149,7 +133,9 @@ def create_inline_keyboard():
         types.InlineKeyboardButton("Фотогалерея", callback_data="photos"),
         # types.InlineKeyboardButton("Проговорить текст", callback_data="speak"),
         types.InlineKeyboardButton("Отправить сообщение", callback_data="letter"),
-        types.InlineKeyboardButton("Играть", url=GAME_URL)
+        types.InlineKeyboardButton("🎮 Играть!", web_app=types.WebAppInfo(url=GAME_URL))
+        # types.InlineKeyboardButton("Играть", url=GAME_URL)
+        # types.InlineKeyboardButton("🎮 Играть!", callback_game=types.CallbackGame())
     ]
     markup.add(*buttons)
     return markup
@@ -357,6 +343,9 @@ def callback_inline(call):
                 bot.send_message(chat_id, f"❌ Ошибка при удалении фото: {e}")
     elif action == 'letter':
         process_contact(call)
+    # elif action == "my_game":
+    #     bot.send_message(chat_id, f"🎮 Сыграть можно здесь: {GAME_URL}")
+        # bot.answer_callback_query(callback_query_id=call.id, url=GAME_URL)
     # elif action == 'speak':
     #     bot.send_message(chat_id, "Пожалуйста, отправьте текст, который вы хотите услышать.")
     #     bot.register_next_step_handler(call.message, process_text_to_speech)

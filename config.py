@@ -8,7 +8,7 @@ MENU_FILE_PATH = 'doc/menu1.txt'
 LOGO_PATH = 'doc/s.png'
 LOG_FILE = 'doc/sent_messages.log'  # Файл для логирования отправленных сообщений
 AUDIO_PATH = 'doc/audio.ogg'  # Путь для сохранения аудиофайла
-GAME_URL = 'http://127.0.0.1:5000'
+GAME_URL = 'https://pi.mcdos.keenetic.link'
 
 # Логирование и пользователи
 ALLOWED_USERS = [524849386, 123456789]  # реальные user_id
