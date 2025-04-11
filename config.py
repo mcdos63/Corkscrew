@@ -29,8 +29,8 @@ TIME_OPEN = 12
 TIME_CLOSE = 1
 
 # Координаты для погоды
-latitude = 53.259035
-longitude = 50.217374
+latitude = 53.259037
+longitude = 50.217396
 
 # Ваш API-ключ от OpenWeatherMap
 API_KEY = '9ec75c7ee009a4ac9f254361c2289bb0'

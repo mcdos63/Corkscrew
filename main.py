@@ -300,10 +300,23 @@ def callback_inline(call):
         bot.send_message(chat_id, f"⏰ Режим работы: {TIME_OPEN}:00 - {TIME_CLOSE:02}:00", parse_mode='HTML',
                          message_effect_id='5046509860389126442')
     elif action == 'contacts':
-        bot.send_message(chat_id, '''🏪 Буфет "Штопор" находится по адресу:
-📍 Проспект Кирова 419Б, Самара.
-📞 Телефон для связи: +7 (917)8192194''', parse_mode='HTML')
-        bot.send_location(chat_id, latitude=latitude, longitude=longitude)
+#         bot.send_message(chat_id, '''🏪 Буфет "Штопор" находится по адресу:
+# 📍 Проспект Кирова 419Б, Самара.
+# 📞 Телефон для связи: +7 (917)8192194''', parse_mode='HTML')
+#         bot.send_location(chat_id, latitude=latitude, longitude=longitude)
+#         two_gis_link = f"https://2gis.ru/?m={longitude}%2C{latitude}"
+#         bot.send_message(chat_id=chat_id, text=f"Местоположение: {two_gis_link}")
+        bot.send_venue(
+            chat_id=chat_id,
+            latitude=latitude,
+            longitude=longitude,
+            title='Буфет "Штопор"',
+            address="Самара, Проспект Кирова 419Б")
+
+        bot.send_message(chat_id, '📞 Телефон для связи: +7(917)819-21-94', parse_mode='HTML')
+# bot.send_location(chat_id, latitude=latitude, longitude=longitude)
+
+
     elif action == 'menu':
         try:
             with open(MENU_FILE_PATH, 'r', encoding='utf-8') as file:
